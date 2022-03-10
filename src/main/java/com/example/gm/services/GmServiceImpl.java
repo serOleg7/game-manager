@@ -1,6 +1,6 @@
 package com.example.gm.services;
 
-import com.example.gm.AnswerStatus;
+import com.example.gm.enums.AnswerStatus;
 import com.example.gm.dto.QuestionDto;
 import com.example.gm.dto.RequestDto;
 import com.example.gm.dto.ResponseDto;

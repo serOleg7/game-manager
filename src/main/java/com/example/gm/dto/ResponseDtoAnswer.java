@@ -1,6 +1,6 @@
 package com.example.gm.dto;
 
-import com.example.gm.AnswerStatus;
+import com.example.gm.enums.AnswerStatus;
 import lombok.Getter;
 import lombok.Setter;
 
