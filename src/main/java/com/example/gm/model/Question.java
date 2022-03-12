@@ -1,7 +1,6 @@
 package com.example.gm.model;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import javax.persistence.Id;
@@ -14,13 +13,15 @@ public class Question {
     private final int questionId;
     private final String question;
     private int intCorrectAnswer;
-    private final List<String> answers = new ArrayList<>(); //Linkedmp
+    private final List<String> answers;
     private double points;
-    private Set<String> playersWhichAnswered;
+    private final Set<String> playersWhichAnswered;
 
     public Question(int questionId, String question, String correctAnswer, String[] incorrectAnswers, String difficulty) {
         this.questionId = questionId;
         this.question = question;
+        answers = new ArrayList<>();
+        playersWhichAnswered = new HashSet<>();
         fillAnswers(correctAnswer, incorrectAnswers);
         fillPoints(difficulty);
     }
@@ -36,5 +37,9 @@ public class Question {
     private void fillPoints(String difficulty) {
         Map<String, Double> mapa = Map.of("easy", 1., "medium", 1.5, "hard", 2.);
         points = mapa.get(difficulty);
+    }
+
+    public void addPlayer(String name){
+        playersWhichAnswered.add(name);
     }
 }

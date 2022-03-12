@@ -1,4 +1,7 @@
-package com.example.gm.model;
+package com.example.gm.dto;
+
+import com.example.gm.model.Player;
+import com.example.gm.model.Question;
 
 import java.util.List;
 import java.util.Set;
