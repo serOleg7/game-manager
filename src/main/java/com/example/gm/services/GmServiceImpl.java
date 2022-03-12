@@ -2,9 +2,8 @@ package com.example.gm.services;
 
 import com.example.gm.dto.*;
 import com.example.gm.enums.AnswerStatus;
-import com.example.gm.exceptions.BadRequestException;
-import com.example.gm.exceptions.HostNotReachableException;
-import com.example.gm.exceptions.PlayerPermissionDeniedException;
+import com.example.gm.exceptions.*;
+import com.example.gm.model.LeaderBoard;
 import com.example.gm.model.Player;
 import com.example.gm.model.Question;
 import org.springframework.core.ParameterizedTypeReference;
@@ -15,73 +14,95 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class GmServiceImpl implements GmService {
     private static final String OPENT_DB = "https://opentdb.com/api.php";
     private final Map<String, Question> questions = new HashMap<>();
     private final Map<String, Player> players = new HashMap<>();
-    private final Map<Integer, Game> leaderBoard = new HashMap<>();
+    private final Map<Integer, LeaderBoard> leaderBoards = new HashMap<>();
 
 
     @Override
     public ResponseDtoAnswer answerQuestion(RequestDto requestDto) {
+        checkExceptionsStatus(requestDto);
         if (!players.containsKey(requestDto.getUserName()))
             registerNewPlayer(requestDto.getUserName());
-        if (!checkIfPlayerCanPlay(requestDto))
-            throw new PlayerPermissionDeniedException(requestDto.getUserName());
 
-        Question question = questions.getOrDefault(generateUniqueId(requestDto), getQuestionFromApi(requestDto));
+        Question question = questions.getOrDefault(getUniqueId(requestDto), getQuestionFromApi(requestDto));
+        LeaderBoard lb = getOrCreateLeaderBoard(requestDto.getGameId());
         ResponseDtoAnswer responseDtoAnswer = new ResponseDtoAnswer();
         if (requestDto.getAnswerId() == question.getIntCorrectAnswer()) {
             responseDtoAnswer.setAnswerStatus(AnswerStatus.RIGHT_ANSWER);
             responseDtoAnswer.setPointsEarned(question.getPoints());
-            players.get(requestDto.getUserName()).setPoints(requestDto.getGameId(), question.getPoints());
+            lb.updateLeaderBoard(requestDto.getUserName(), question.getPoints());
 
         } else
-            players.get(requestDto.getUserName()).setPoints(requestDto.getGameId(), 0);
+            lb.updateLeaderBoard(requestDto.getUserName(), 0);
 
         question.addPlayer(requestDto.getUserName());
-        System.out.println("qu: " + questions);
-
+//        System.out.println("qu: " + questions);
+//        System.out.println("le: " + leaderBoards);
         return responseDtoAnswer;
     }
 
-    @Override
-    public LeaderBoard getLeaderBoard(int gameId) {
-        //TODO
-        return null;
+    private void checkExceptionsStatus(RequestDto requestDto) {
+        if (requestDto.getUserName() == null)
+            throw new DataMissingException();
+        if (!checkIfPlayerCanPlay(requestDto))
+            throw new PlayerPermissionDeniedException(requestDto.getUserName());
     }
 
-    private String generateUniqueId(RequestDto requestDto) {
-        return requestDto.getGameId() + "|" + requestDto.getAnswerId();
 
+    private boolean checkIfPlayerCanPlay(RequestDto requestDto) {
+        if (!questions.containsKey(getUniqueId(requestDto)))
+            return true;
+        return !questions.get(getUniqueId(requestDto)).getPlayersWhichAnswered().contains(requestDto.getUserName());
     }
 
     private void registerNewPlayer(String userName) {
         players.put(userName, new Player(userName));
     }
 
-    private boolean checkIfPlayerCanPlay(RequestDto requestDto) {
-        //TODO
-        return true;
+    private LeaderBoard getOrCreateLeaderBoard(int gameId) {
+        LeaderBoard lb = leaderBoards.get(gameId);
+        if (lb == null) {
+            lb = new LeaderBoard(gameId);
+            leaderBoards.put(gameId, lb);
+        }
+        return lb;
+    }
+
+    @Override
+    public Map<String, Double> getLeaderBoard(int gameId) {
+        if (leaderBoards.containsKey(gameId)) {
+            return leaderBoards.get(gameId).getResults().entrySet().stream()
+                    .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+        } else
+            throw new BadRequestException(gameId);
+    }
+
+    private String getUniqueId(RequestDto requestDto) {
+        return requestDto.getGameId() + "|" + requestDto.getQuestionId();
+
     }
 
 
     private Question getQuestionFromApi(RequestDto requestDto) {
-        synchronized (generateUniqueId(requestDto)) {
-            if (questions.containsKey(generateUniqueId(requestDto)))
-                return questions.get(generateUniqueId(requestDto));
-            RestTemplate restTemplate = new RestTemplate();
+        synchronized (getUniqueId(requestDto)) {
+            if (questions.containsKey(getUniqueId(requestDto)))
+                return questions.get(getUniqueId(requestDto));
+            //TODO add check if question unique / add Set<String>
             ResponseDto body;
             try {
                 UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(OPENT_DB)
                         .queryParam("amount", 1)
                         .queryParam("category", requestDto.getGameId());
                 RequestEntity<String> requestEntity = new RequestEntity<>(HttpMethod.GET, builder.build().toUri());
+                RestTemplate restTemplate = new RestTemplate();
                 ResponseEntity<ResponseDto> responseEntity = restTemplate.exchange(requestEntity,
                         new ParameterizedTypeReference<>() {
                         });
@@ -89,9 +110,9 @@ public class GmServiceImpl implements GmService {
             } catch (RuntimeException e) {
                 throw new HostNotReachableException();
             }
-            QuestionDto dto = Objects.requireNonNull(body).getResults().stream().findFirst().orElseThrow(BadRequestException::new);
-            return questions.put(generateUniqueId(requestDto),
-                    new Question(requestDto.getQuestionId(), dto.getQuestion(), dto.getCorrectAnswer(), dto.getIncorrectAnswers(), dto.getDifficulty()));
+            QuestionDto dto = Objects.requireNonNull(body).getResults().stream().findFirst().orElseThrow(WrongGameIdException::new);
+            return questions.put(getUniqueId(requestDto),
+                    new Question(requestDto.getGameId(), requestDto.getQuestionId(), dto.getQuestion(), dto.getCorrectAnswer(), dto.getIncorrectAnswers(), dto.getDifficulty()));
         }
 
     }

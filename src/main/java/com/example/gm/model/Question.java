@@ -1,5 +1,6 @@
 package com.example.gm.model;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -8,17 +9,18 @@ import java.util.*;
 
 @Getter
 @ToString
+@EqualsAndHashCode(of = {"uniqueId"})
 public class Question {
     @Id
-    private final int questionId;
+    private final String uniqueId;
     private final String question;
     private int intCorrectAnswer;
     private final List<String> answers;
     private double points;
     private final Set<String> playersWhichAnswered;
 
-    public Question(int questionId, String question, String correctAnswer, String[] incorrectAnswers, String difficulty) {
-        this.questionId = questionId;
+    public Question(int gameId, int questionId, String question, String correctAnswer, String[] incorrectAnswers, String difficulty) {
+        this.uniqueId = gameId + "|" + questionId;
         this.question = question;
         answers = new ArrayList<>();
         playersWhichAnswered = new HashSet<>();
@@ -42,4 +44,6 @@ public class Question {
     public void addPlayer(String name){
         playersWhichAnswered.add(name);
     }
+
+
 }

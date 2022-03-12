@@ -8,4 +8,5 @@ public class RequestDto {
     private int gameId;
     private int answerId;
     private int questionId;
+
 }

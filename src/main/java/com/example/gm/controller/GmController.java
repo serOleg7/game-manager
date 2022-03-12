@@ -1,11 +1,13 @@
 package com.example.gm.controller;
 
-import com.example.gm.dto.LeaderBoard;
+import com.example.gm.model.LeaderBoard;
 import com.example.gm.dto.RequestDto;
 import com.example.gm.dto.ResponseDtoAnswer;
 import com.example.gm.services.GmService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/game")
@@ -23,7 +25,7 @@ public class GmController {
     }
 
     @GetMapping("/leaderboard/{gameId}")
-    public LeaderBoard getLeaderBoard(@PathVariable Integer gameId){
+    public Map<String, Double> getLeaderBoard(@PathVariable Integer gameId){
         return gmService.getLeaderBoard(gameId);
     }
 }
