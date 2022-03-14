@@ -6,6 +6,6 @@ import java.util.List;
 
 @Getter
 public class ResponseDto {
-    List<QuestionDto> results;
+    private List<QuestionDto> results;
 
 }

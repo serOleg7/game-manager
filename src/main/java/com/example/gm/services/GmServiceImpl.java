@@ -19,10 +19,18 @@ import java.util.stream.Collectors;
 
 @Service
 public class GmServiceImpl implements GmService {
-    private static final String OPENT_DB = "https://opentdb.com/api.php";
-    private final Map<String, Question> questions = new HashMap<>();
+    private static String URL_API = "https://opentdb.com/api.php"; //fix to final
     private final Map<String, Player> players = new HashMap<>();
     private final Map<Integer, LeaderBoard> leaderBoards = new HashMap<>();
+    private Map<String, Question> questions = new HashMap<>();
+
+
+    public GmServiceImpl() {
+    }
+
+    public GmServiceImpl(Map<String, Question> questions) {
+        this.questions = questions;
+    }
 
 
     @Override
@@ -31,21 +39,24 @@ public class GmServiceImpl implements GmService {
         if (!players.containsKey(requestDto.getUserName()))
             registerNewPlayer(requestDto.getUserName());
 
-        Question question = questions.getOrDefault(getUniqueId(requestDto), getQuestionFromApi(requestDto));
+        Question question = getQuestion(requestDto);
         LeaderBoard lb = getOrCreateLeaderBoard(requestDto.getGameId());
         ResponseDtoAnswer responseDtoAnswer = new ResponseDtoAnswer();
         if (requestDto.getAnswerId() == question.getIntCorrectAnswer()) {
             responseDtoAnswer.setAnswerStatus(AnswerStatus.RIGHT_ANSWER);
             responseDtoAnswer.setPointsEarned(question.getPoints());
             lb.updateLeaderBoard(requestDto.getUserName(), question.getPoints());
-
         } else
             lb.updateLeaderBoard(requestDto.getUserName(), 0);
 
         question.addPlayer(requestDto.getUserName());
-//        System.out.println("qu: " + questions);
-//        System.out.println("le: " + leaderBoards);
         return responseDtoAnswer;
+    }
+
+    private Question getQuestion(RequestDto requestDto) {
+        return questions.containsKey(getUniqueId(requestDto)) ? questions.get(getUniqueId(requestDto)) :
+                questions.getOrDefault(getUniqueId(requestDto), getQuestionFromApi(requestDto));
+
     }
 
     private void checkExceptionsStatus(RequestDto requestDto) {
@@ -98,7 +109,7 @@ public class GmServiceImpl implements GmService {
             //TODO add check if question unique / add Set<String>
             ResponseDto body;
             try {
-                UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(OPENT_DB)
+                UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(URL_API)
                         .queryParam("amount", 1)
                         .queryParam("category", requestDto.getGameId());
                 RequestEntity<String> requestEntity = new RequestEntity<>(HttpMethod.GET, builder.build().toUri());
@@ -110,14 +121,18 @@ public class GmServiceImpl implements GmService {
             } catch (RuntimeException e) {
                 throw new HostNotReachableException();
             }
-            QuestionDto dto = Objects.requireNonNull(body).getResults().stream().findFirst().orElseThrow(WrongGameIdException::new);
-            return questions.put(getUniqueId(requestDto),
-                    new Question(requestDto.getGameId(), requestDto.getQuestionId(), dto.getQuestion(), dto.getCorrectAnswer(), dto.getIncorrectAnswers(), dto.getDifficulty()));
+            Question question = dtoToQuestionMapper(getUniqueId(requestDto), Objects.requireNonNull(body).getResults().stream().findFirst().orElseThrow(WrongGameIdException::new));
+            return questions.put(question.getUniqueId(), question);
         }
 
     }
 
+    public static Question dtoToQuestionMapper(String uniqueId, QuestionDto dto) {
+        return new Question(uniqueId, dto.getQuestion(), dto.getCorrectAnswer(), dto.getIncorrectAnswers(), dto.getDifficulty());
+    }
 }
+
+
 
 
 

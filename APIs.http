@@ -1,0 +1,17 @@
+### Check question
+POST http://localhost:8080/game/
+Accept: application/json
+Content-Type: application/json
+
+{
+  "userName": "Peter",
+  "gameId": "9",
+  "answerId": "1",
+  "questionId": "1"
+}
+
+
+### Get leaderboard of specific game
+GET http://localhost:8080/game/leaderboard/9
+Accept: application/json
+

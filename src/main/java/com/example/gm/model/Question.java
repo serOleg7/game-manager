@@ -4,24 +4,23 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
-import javax.persistence.Id;
 import java.util.*;
 
 @Getter
 @ToString
 @EqualsAndHashCode(of = {"uniqueId"})
 public class Question {
-    @Id
     private final String uniqueId;
     private final String question;
-    private int intCorrectAnswer;
+    private final int intCorrectAnswer;
     private final List<String> answers;
-    private double points;
     private final Set<String> playersWhichAnswered;
+    private double points;
 
-    public Question(int gameId, int questionId, String question, String correctAnswer, String[] incorrectAnswers, String difficulty) {
-        this.uniqueId = gameId + "|" + questionId;
+    public Question(String uniqueId, String question, String correctAnswer, String[] incorrectAnswers, String difficulty) {
+        this.uniqueId = uniqueId;
         this.question = question;
+        intCorrectAnswer = new Random().nextInt(incorrectAnswers.length);
         answers = new ArrayList<>();
         playersWhichAnswered = new HashSet<>();
         fillAnswers(correctAnswer, incorrectAnswers);
@@ -29,16 +28,14 @@ public class Question {
     }
 
     private void fillAnswers(String correctAnswer, String[] incorrectAnswers) {
-        Random random = new Random();
-        intCorrectAnswer = random.nextInt(incorrectAnswers.length);
         answers.addAll(Arrays.asList(incorrectAnswers));
         answers.add(intCorrectAnswer, correctAnswer);
 
     }
 
     private void fillPoints(String difficulty) {
-        Map<String, Double> mapa = Map.of("easy", 1., "medium", 1.5, "hard", 2.);
-        points = mapa.get(difficulty);
+        Map<String, Double> map = Map.of("easy", 1., "medium", 1.5, "hard", 2.);
+        points = map.get(difficulty);
     }
 
     public void addPlayer(String name){

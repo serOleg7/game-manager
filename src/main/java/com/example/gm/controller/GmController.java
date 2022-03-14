@@ -1,6 +1,5 @@
 package com.example.gm.controller;
 
-import com.example.gm.model.LeaderBoard;
 import com.example.gm.dto.RequestDto;
 import com.example.gm.dto.ResponseDtoAnswer;
 import com.example.gm.services.GmService;
@@ -19,7 +18,7 @@ public class GmController {
         this.gmService = gmService;
     }
 
-    @GetMapping
+    @PostMapping
     public ResponseDtoAnswer checkQuestion(@RequestBody RequestDto requestDto) {
         return gmService.answerQuestion(requestDto);
     }

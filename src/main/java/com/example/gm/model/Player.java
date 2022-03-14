@@ -1,19 +1,19 @@
 package com.example.gm.model;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 
-import javax.persistence.Id;
 import java.util.HashMap;
 import java.util.Map;
 
-@NoArgsConstructor
+
 @AllArgsConstructor
 @Getter
 @EqualsAndHashCode(of = {"name"})
 public class Player {
-    @Id
-    private String name;
-    private Map<Integer, Double> results;
+    private final String name;
+    private final Map<Integer, Double> results;
 
 
     public Player(String name) {
